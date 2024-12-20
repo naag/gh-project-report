@@ -4,6 +4,7 @@ import "time"
 
 // ProjectState represents the state of a project at a specific point in time
 type ProjectState struct {
+	Filename      string    `json:"filename"`
 	Timestamp     time.Time `json:"timestamp"`
 	ProjectNumber int       `json:"project_number,omitempty"`
 	ProjectID     string    `json:"project_id,omitempty"`

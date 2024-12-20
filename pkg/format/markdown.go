@@ -2,6 +2,7 @@ package format
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -118,38 +119,59 @@ func (f *TableFormatter) Format(diff types.ProjectDiff) string {
 
 	// Other changes section
 	if hasFieldChanges(diff.ChangedItems) {
-		otherTable := &Table{
-			Columns: []TableColumn{
-				{Header: "Task", Alignment: AlignLeft},
-				{Header: "Status", Alignment: AlignCenter},
-				{Header: "Priority", Alignment: AlignCenter},
-				{Header: "Owner", Alignment: AlignCenter},
-			},
+		// First, collect all unique field names that changed
+		fieldNames := make(map[string]bool)
+		for _, change := range diff.ChangedItems {
+			for _, fieldChange := range change.FieldChanges {
+				if fieldChange.Field != "start" && fieldChange.Field != "end" &&
+					fieldChange.Field != "updated_at" && fieldChange.Field != "created_at" {
+					fieldNames[fieldChange.Field] = true
+				}
+			}
 		}
 
+		// Create columns
+		columns := []TableColumn{{Header: "Task", Alignment: AlignLeft}}
+		// Sort field names for consistent column order
+		var sortedFields []string
+		for field := range fieldNames {
+			sortedFields = append(sortedFields, field)
+		}
+		sort.Strings(sortedFields)
+		for _, field := range sortedFields {
+			columns = append(columns, TableColumn{Header: field, Alignment: AlignCenter})
+		}
+
+		otherTable := &Table{Columns: columns}
+
+		// Add item changes
 		for _, change := range diff.ChangedItems {
 			if len(change.FieldChanges) > 0 {
-				title := change.After.GetTitle()
-				row := []string{title, "-", "-", "-"}
+				hasNonTimeChange := false
+				row := make([]string, len(columns))
+				row[0] = change.After.GetTitle()
+				// Fill all fields with "-" by default
+				for i := 1; i < len(columns); i++ {
+					row[i] = "-"
+				}
 
+				// Fill in the actual changes
 				for _, fieldChange := range change.FieldChanges {
-					// Skip start/end fields as they should be handled via DateSpan
-					if fieldChange.Field == "start" || fieldChange.Field == "end" {
-						continue
-					}
-
-					switch fieldChange.Field {
-					case "status":
-						row[1] = fmt.Sprintf("%v → %v", fieldChange.OldValue, fieldChange.NewValue)
-					case "priority":
-						row[2] = fmt.Sprintf("%v → %v", fieldChange.OldValue, fieldChange.NewValue)
-					case "owner":
-						row[3] = fmt.Sprintf("%v → %v", fieldChange.OldValue, fieldChange.NewValue)
+					if fieldChange.Field != "start" && fieldChange.Field != "end" &&
+						fieldChange.Field != "updated_at" && fieldChange.Field != "created_at" {
+						hasNonTimeChange = true
+						// Find the column index for this field
+						for i, field := range sortedFields {
+							if field == fieldChange.Field {
+								row[i+1] = fmt.Sprintf("%v → %v", fieldChange.OldValue, fieldChange.NewValue)
+								break
+							}
+						}
 					}
 				}
 
-				// Only add the row if there are actual changes (not just start/end)
-				if row[1] != "-" || row[2] != "-" || row[3] != "-" {
+				// Only add the row if there are actual non-time changes
+				if hasNonTimeChange {
 					otherTable.Rows = append(otherTable.Rows, row)
 				}
 			}

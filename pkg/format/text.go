@@ -120,7 +120,7 @@ func (f *TextFormatter) Format(diff types.ProjectDiff) string {
 func (f *TextFormatter) formatAttributes(attrs map[string]interface{}) string {
 	var sb strings.Builder
 	for k, v := range attrs {
-		if k != "Title" && k != "created_at" && k != "updated_at" {
+		if strings.ToLower(k) != "title" && strings.ToLower(k) != "created_at" && strings.ToLower(k) != "updated_at" {
 			sb.WriteString(fmt.Sprintf("  %s: %v\n", k, v))
 		}
 	}

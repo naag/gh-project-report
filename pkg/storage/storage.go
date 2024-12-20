@@ -149,6 +149,7 @@ func (s *Store) LoadStateFile(filename string) (*types.ProjectState, error) {
 		return nil, fmt.Errorf("failed to unmarshal state: %w", err)
 	}
 
+	state.Filename = filename
 	return &state, nil
 }
 

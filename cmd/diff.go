@@ -88,54 +88,33 @@ func runDiff(cmd *cobra.Command, args []string) error {
 		formatter = format.NewTableFormatter(opts...)
 	}
 
-	// If timeRange is provided, use it
+	// Get from and to times based on input flags
+	var fromTime, toTime time.Time
+	var err error
+
 	if cmd.Flags().Changed("range") {
-		from, to, err := format.ParseHumanRange(timeRange)
+		fromTime, toTime, err = format.ParseHumanRange(timeRange)
 		if err != nil {
 			return fmt.Errorf("error parsing time range: %w", err)
 		}
-
-		// Create storage
-		store, err := storage.NewStore("")
+	} else {
+		fromTime, err = time.Parse(time.RFC3339, fromDate)
 		if err != nil {
-			return fmt.Errorf("failed to create storage: %w", err)
+			return fmt.Errorf("invalid 'from' date format (must be ISO8601): %w", err)
 		}
 
-		// Load states
-		fromState, err := store.LoadState(projectNumber, from)
+		toTime, err = time.Parse(time.RFC3339, toDate)
 		if err != nil {
-			return fmt.Errorf("failed to load from state: %w", err)
+			return fmt.Errorf("invalid 'to' date format (must be ISO8601): %w", err)
 		}
-
-		toState, err := store.LoadState(projectNumber, to)
-		if err != nil {
-			return fmt.Errorf("failed to load to state: %w", err)
-		}
-
-		// Compare states
-		diff := types.CompareProjectStates(fromState, toState)
-		fmt.Print(formatter.Format(diff))
-		return nil
 	}
 
-	// Otherwise, parse from and to dates
-	fromTime, err := time.Parse(time.RFC3339, fromDate)
-	if err != nil {
-		return fmt.Errorf("invalid 'from' date format (must be ISO8601): %w", err)
-	}
-
-	toTime, err := time.Parse(time.RFC3339, toDate)
-	if err != nil {
-		return fmt.Errorf("invalid 'to' date format (must be ISO8601): %w", err)
-	}
-
-	// Create storage
+	// Create storage and load states
 	store, err := storage.NewStore("")
 	if err != nil {
 		return fmt.Errorf("failed to create storage: %w", err)
 	}
 
-	// Load states
 	fromState, err := store.LoadState(projectNumber, fromTime)
 	if err != nil {
 		return fmt.Errorf("failed to load from state: %w", err)
@@ -146,7 +125,10 @@ func runDiff(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to load to state: %w", err)
 	}
 
-	// Compare states
+	fmt.Printf("From: %s\n", fromState.Filename)
+	fmt.Printf("To: %s\n", toState.Filename)
+
+	// Compare states and format output
 	diff := types.CompareProjectStates(fromState, toState)
 	fmt.Print(formatter.Format(diff))
 	return nil
