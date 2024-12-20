@@ -13,7 +13,7 @@ import (
 func TestFetchProjectState(t *testing.T) {
 	tests := []struct {
 		name       string
-		response   string
+		responses  []string
 		startField string
 		endField   string
 		wantDates  bool
@@ -22,10 +22,20 @@ func TestFetchProjectState(t *testing.T) {
 	}{
 		{
 			name: "with start and end fields",
-			response: `{
-				"data": {
-					"viewer": {
-						"projectV2": {
+			responses: []string{
+				`{
+					"data": {
+						"viewer": {
+							"projectV2": {
+								"id": "PVT_123"
+							}
+						}
+					}
+				}`,
+				`{
+					"data": {
+						"node": {
+							"__typename": "ProjectV2",
 							"items": {
 								"pageInfo": { "hasNextPage": false },
 								"nodes": [{
@@ -54,8 +64,8 @@ func TestFetchProjectState(t *testing.T) {
 							}
 						}
 					}
-				}
-			}`,
+				}`,
+			},
 			startField: "Start Date",
 			endField:   "Due Date",
 			wantDates:  true,
@@ -64,10 +74,20 @@ func TestFetchProjectState(t *testing.T) {
 		},
 		{
 			name: "with date fields but not marked as start/end",
-			response: `{
-				"data": {
-					"viewer": {
-						"projectV2": {
+			responses: []string{
+				`{
+					"data": {
+						"viewer": {
+							"projectV2": {
+								"id": "PVT_123"
+							}
+						}
+					}
+				}`,
+				`{
+					"data": {
+						"node": {
+							"__typename": "ProjectV2",
 							"items": {
 								"pageInfo": { "hasNextPage": false },
 								"nodes": [{
@@ -96,8 +116,8 @@ func TestFetchProjectState(t *testing.T) {
 							}
 						}
 					}
-				}
-			}`,
+				}`,
+			},
 			startField: "Other Field",
 			endField:   "Another Field",
 			wantDates:  false,
@@ -107,9 +127,11 @@ func TestFetchProjectState(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create test server
+			responseIndex := 0
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusOK)
-				w.Write([]byte(tt.response))
+				w.Write([]byte(tt.responses[responseIndex]))
+				responseIndex++
 			}))
 			defer server.Close()
 
@@ -124,7 +146,7 @@ func TestFetchProjectState(t *testing.T) {
 			client := NewClientWithBaseURL(httpClient, server.URL, false)
 
 			// Fetch state
-			state, err := client.FetchProjectState(123, tt.startField, tt.endField)
+			state, err := client.FetchProjectState(123, "", tt.startField, tt.endField)
 			assert.NoError(t, err)
 			assert.NotNil(t, state)
 			assert.Len(t, state.Items, 1)
@@ -190,9 +212,120 @@ func TestFetchProjectStateErrors(t *testing.T) {
 			}
 			client := NewClientWithBaseURL(httpClient, server.URL, false)
 
-			_, err = client.FetchProjectState(123, "Timeline", "Due Date")
+			_, err = client.FetchProjectState(123, "", "Timeline", "Due Date")
 			assert.Error(t, err)
 			assert.Contains(t, err.Error(), tt.wantErrMsg)
+		})
+	}
+}
+
+func TestLookupProjectNodeID(t *testing.T) {
+	tests := []struct {
+		name         string
+		response     string
+		projectNum   int
+		organization string
+		wantID       string
+		wantErr      string
+	}{
+		{
+			name: "user project found",
+			response: `{
+				"data": {
+					"viewer": {
+						"projectV2": {
+							"id": "PVT_123"
+						}
+					}
+				}
+			}`,
+			projectNum: 123,
+			wantID:     "PVT_123",
+		},
+		{
+			name: "org project found",
+			response: `{
+				"data": {
+					"organization": {
+						"projectV2": {
+							"id": "PVT_456"
+						}
+					}
+				}
+			}`,
+			projectNum:   456,
+			organization: "testorg",
+			wantID:       "PVT_456",
+		},
+		{
+			name: "project not found in org",
+			response: `{
+				"data": {
+					"organization": {
+						"projectV2": {
+							"id": ""
+						}
+					}
+				}
+			}`,
+			projectNum:   789,
+			organization: "testorg",
+			wantErr:      "project 789 not found in organization testorg",
+		},
+		{
+			name: "project not found for user",
+			response: `{
+				"data": {
+					"viewer": {
+						"projectV2": {
+							"id": ""
+						}
+					}
+				}
+			}`,
+			projectNum: 999,
+			wantErr:    "project 999 not found",
+		},
+		{
+			name: "graphql error",
+			response: `{
+				"errors": [
+					{
+						"message": "Something went wrong"
+					}
+				]
+			}`,
+			projectNum: 123,
+			wantErr:    "GraphQL query failed",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK)
+				w.Write([]byte(tt.response))
+			}))
+			defer server.Close()
+
+			httpClient := &http.Client{
+				Transport: &http.Transport{
+					Proxy: func(req *http.Request) (*url.URL, error) {
+						return url.Parse(server.URL)
+					},
+				},
+			}
+			client := NewClientWithBaseURL(httpClient, server.URL, false)
+
+			gotID, err := client.LookupProjectNodeID(tt.projectNum, tt.organization)
+			if tt.wantErr != "" {
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), tt.wantErr)
+				return
+			}
+
+			assert.NoError(t, err)
+			assert.Equal(t, tt.wantID, gotID)
 		})
 	}
 }

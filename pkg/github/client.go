@@ -46,7 +46,13 @@ func NewClientWithBaseURL(httpClient *http.Client, baseURL string, verbose bool)
 }
 
 // FetchProjectState fetches the current state of a project
-func (c *Client) FetchProjectState(projectNumber int, startField, endField string) (*types.ProjectState, error) {
+func (c *Client) FetchProjectState(projectNumber int, organization, startField, endField string) (*types.ProjectState, error) {
+	// First, lookup the project's node ID
+	projectNodeID, err := c.LookupProjectNodeID(projectNumber, organization)
+	if err != nil {
+		return nil, fmt.Errorf("failed to lookup project ID: %w", err)
+	}
+
 	// Common field types that will be embedded
 	type ProjectV2FieldCommon struct {
 		Name graphql.String
@@ -107,7 +113,8 @@ func (c *Client) FetchProjectState(projectNumber int, startField, endField strin
 	}
 
 	var query struct {
-		Viewer struct {
+		Node struct {
+			TypeName  graphql.String `graphql:"__typename"`
 			ProjectV2 struct {
 				Title graphql.String
 				Items struct {
@@ -134,16 +141,16 @@ func (c *Client) FetchProjectState(projectNumber int, startField, endField strin
 							DraftIssue  DraftIssueContent  `graphql:"... on DraftIssue"`
 						}
 					}
-				} `graphql:"items(first: 100)"`
-			} `graphql:"projectV2(number: $number)"`
-		}
+				}
+			} `graphql:"... on ProjectV2"`
+		} `graphql:"node(id: $id)"`
 	}
 
 	variables := map[string]interface{}{
-		"number": graphql.Int(projectNumber),
+		"id": graphql.ID(projectNodeID),
 	}
 
-	err := c.graphql.Query(context.Background(), &query, variables)
+	err = c.graphql.Query(context.Background(), &query, variables)
 	if err != nil {
 		return nil, fmt.Errorf("GraphQL query failed: %w", err)
 	}
@@ -152,10 +159,12 @@ func (c *Client) FetchProjectState(projectNumber int, startField, endField strin
 	state := &types.ProjectState{
 		Timestamp:     time.Now(),
 		ProjectNumber: projectNumber,
+		ProjectID:     projectNodeID,
+		Organization:  organization,
 		Items:         make([]types.Item, 0),
 	}
 
-	for _, item := range query.Viewer.ProjectV2.Items.Nodes {
+	for _, item := range query.Node.ProjectV2.Items.Nodes {
 		// Get title and timestamps based on content type
 		var (
 			title     string
@@ -234,6 +243,59 @@ func (c *Client) FetchProjectState(projectNumber int, startField, endField strin
 	}
 
 	return state, nil
+}
+
+// LookupProjectNodeID looks up the node ID for a project based on its number and optional organization
+func (c *Client) LookupProjectNodeID(projectNumber int, organization string) (string, error) {
+	if organization != "" {
+		// Try organization project first
+		var orgQuery struct {
+			Organization struct {
+				ProjectV2 struct {
+					ID graphql.String
+				} `graphql:"projectV2(number: $number)"`
+			} `graphql:"organization(login: $login)"`
+		}
+
+		variables := map[string]interface{}{
+			"number": graphql.Int(projectNumber),
+			"login":  graphql.String(organization),
+		}
+
+		err := c.graphql.Query(context.Background(), &orgQuery, variables)
+		if err != nil {
+			return "", fmt.Errorf("GraphQL query failed: %w", err)
+		}
+
+		if id := string(orgQuery.Organization.ProjectV2.ID); id != "" {
+			return id, nil
+		}
+		return "", fmt.Errorf("project %d not found in organization %s", projectNumber, organization)
+	}
+
+	// Fall back to viewer's project
+	var viewerQuery struct {
+		Viewer struct {
+			ProjectV2 struct {
+				ID graphql.String
+			} `graphql:"projectV2(number: $number)"`
+		}
+	}
+
+	variables := map[string]interface{}{
+		"number": graphql.Int(projectNumber),
+	}
+
+	err := c.graphql.Query(context.Background(), &viewerQuery, variables)
+	if err != nil {
+		return "", fmt.Errorf("GraphQL query failed: %w", err)
+	}
+
+	if id := string(viewerQuery.Viewer.ProjectV2.ID); id != "" {
+		return id, nil
+	}
+
+	return "", fmt.Errorf("project %d not found", projectNumber)
 }
 
 type loggingTransport struct {

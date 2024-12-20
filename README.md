@@ -31,8 +31,14 @@ States are stored locally in the following structure:
 # View help
 gh-project-report --help
 
-# Capture current state
+# Capture current state (user project)
 gh-project-report capture -p 123
+
+# Capture organization project state
+gh-project-report capture -p 123 -o myorg
+
+# Capture with custom field names
+gh-project-report capture -p 123 --start-field "Timeline Start" --end-field "Timeline End"
 
 # Compare states between two timestamps
 gh-project-report diff -p 123 -f "2024-01-01" -t "2024-01-15"
@@ -84,29 +90,19 @@ go install github.com/naag/gh-project-report@latest
 ## Configuration
 
 The tool requires the following environment variables:
-- `GITHUB_TOKEN`: Your GitHub Personal Access Token
+- `GITHUB_TOKEN`: Your GitHub Personal Access Token with access to the projects you want to track
 
-The GitHub Project ID is specified using the `-p` or `--project` flag for each command.
+The following flags are available for all commands:
+- `-p` or `--project`: GitHub Project ID (required)
+- `-v` or `--verbose`: Enable verbose output (optional)
 
-## Commands
+### capture command flags
+- `-o` or `--organization`: GitHub organization name for org-level projects (optional)
+- `--start-field`: Field name containing start date (default: "Start")
+- `--end-field`: Field name containing end date (default: "End")
 
-### capture
-Captures the current state of the GitHub Project and saves it locally.
-
-```bash
-gh-project-report capture -p 123
-```
-
-### diff
-Compares two project states between specified dates.
-
-```bash
-# Compare using exact dates
-gh-project-report diff -p 123 -f "2024-01-01" -t "2024-01-15"
-
-# Compare using relative time
-gh-project-report diff -p 123 --range "last week"
-```
+### diff command flags
+- `--range`: Compare states using relative time (e.g., "last week", "1 day")
 
 The tool will find the closest state files to the specified dates for comparison.
 

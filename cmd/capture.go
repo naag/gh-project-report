@@ -13,8 +13,9 @@ import (
 )
 
 var (
-	startField string
-	endField   string
+	startField   string
+	endField     string
+	organization string
 )
 
 var captureCmd = &cobra.Command{
@@ -29,6 +30,7 @@ func init() {
 	rootCmd.AddCommand(captureCmd)
 	captureCmd.Flags().StringVar(&startField, "start-field", "Start", "Field name containing start date")
 	captureCmd.Flags().StringVar(&endField, "end-field", "End", "Field name containing end date")
+	captureCmd.Flags().StringVarP(&organization, "organization", "o", "", "GitHub organization name (optional)")
 }
 
 func runCapture(cmd *cobra.Command, args []string) error {
@@ -57,7 +59,7 @@ func runCapture(cmd *cobra.Command, args []string) error {
 	client := github.NewClient(httpClient, verbose)
 
 	// Fetch project state
-	state, err := client.FetchProjectState(projectNumber, startField, endField)
+	state, err := client.FetchProjectState(projectNumber, organization, startField, endField)
 	if err != nil {
 		return fmt.Errorf("failed to fetch project state: %w", err)
 	}

@@ -6,6 +6,8 @@ import "time"
 type ProjectState struct {
 	Timestamp     time.Time `json:"timestamp"`
 	ProjectNumber int       `json:"project_number,omitempty"`
+	ProjectID     string    `json:"project_id,omitempty"`
+	Organization  string    `json:"organization,omitempty"`
 	Items         []Item    `json:"items"`
 }
 
