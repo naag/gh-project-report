@@ -1,0 +1,84 @@
+query GetProjectState($number: Int!) {
+  viewer {
+    projectV2(number: $number) {
+      title
+      items(first: 100) {
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
+        nodes {
+          id
+          fieldValues(first: 100) {
+            nodes {
+              __typename
+              ... on ProjectV2ItemFieldTextValue {
+                text
+                field {
+                  ... on ProjectV2FieldCommon {
+                    name
+                  }
+                }
+              }
+              ... on ProjectV2ItemFieldNumberValue {
+                number
+                field {
+                  ... on ProjectV2FieldCommon {
+                    name
+                  }
+                }
+              }
+              ... on ProjectV2ItemFieldDateValue {
+                date
+                field {
+                  ... on ProjectV2FieldCommon {
+                    name
+                  }
+                }
+              }
+              ... on ProjectV2ItemFieldSingleSelectValue {
+                name
+                field {
+                  ... on ProjectV2FieldCommon {
+                    name
+                  }
+                }
+              }
+              ... on ProjectV2ItemFieldRepositoryValue {
+                repository {
+                  name
+                  owner {
+                    login
+                  }
+                }
+                field {
+                  ... on ProjectV2FieldCommon {
+                    name
+                  }
+                }
+              }
+            }
+          }
+          content {
+            __typename
+            ... on Issue {
+              title
+              createdAt
+              updatedAt
+            }
+            ... on PullRequest {
+              title
+              createdAt
+              updatedAt
+            }
+            ... on DraftIssue {
+              title
+              createdAt
+              updatedAt
+            }
+          }
+        }
+      }
+    }
+  }
+} 

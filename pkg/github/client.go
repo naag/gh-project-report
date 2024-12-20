@@ -3,6 +3,8 @@ package github
 import (
 	"bytes"
 	"context"
+	_ "embed"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -12,10 +14,107 @@ import (
 	"github.com/shurcooL/graphql"
 )
 
+//go:embed queries/get_viewer_project_node_id.graphql
+var getViewerProjectNodeIDQuery string
+
+//go:embed queries/get_org_project_node_id.graphql
+var getOrgProjectNodeIDQuery string
+
+//go:embed queries/get_project_state.graphql
+var getProjectStateQuery string
+
 // Client represents a GitHub client
 type Client struct {
-	graphql *graphql.Client
-	verbose bool
+	httpClient *http.Client
+	baseURL    string
+	verbose    bool
+}
+
+// graphQLRequest represents a GraphQL request
+type graphQLRequest struct {
+	Query     string                 `json:"query"`
+	Variables map[string]interface{} `json:"variables,omitempty"`
+}
+
+// loadQuery loads a GraphQL query from embedded files
+func (c *Client) loadQuery(name string) (string, error) {
+	switch name {
+	case "get_viewer_project_node_id":
+		return getViewerProjectNodeIDQuery, nil
+	case "get_org_project_node_id":
+		return getOrgProjectNodeIDQuery, nil
+	case "get_project_state":
+		return getProjectStateQuery, nil
+	default:
+		return "", fmt.Errorf("unknown query: %s", name)
+	}
+}
+
+// executeQuery executes a GraphQL query and unmarshals the response into the result
+func (c *Client) executeQuery(ctx context.Context, queryName string, variables map[string]interface{}, result interface{}) error {
+	queryStr, err := c.loadQuery(queryName)
+	if err != nil {
+		return err
+	}
+
+	reqBody := graphQLRequest{
+		Query:     queryStr,
+		Variables: variables,
+	}
+
+	jsonBody, err := json.Marshal(reqBody)
+	if err != nil {
+		return fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "POST", c.baseURL, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	if c.verbose {
+		fmt.Printf("\nGraphQL Request:\n%s\n", string(jsonBody))
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read response: %w", err)
+	}
+
+	if c.verbose {
+		fmt.Printf("\nGraphQL Response:\n%s\n", string(body))
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("request failed with status %d: %s", resp.StatusCode, string(body))
+	}
+
+	var response struct {
+		Data   json.RawMessage  `json:"data"`
+		Errors []map[string]any `json:"errors,omitempty"`
+	}
+
+	if err := json.Unmarshal(body, &response); err != nil {
+		return fmt.Errorf("failed to parse response: %w", err)
+	}
+
+	if len(response.Errors) > 0 {
+		return fmt.Errorf("GraphQL query failed: %v", response.Errors)
+	}
+
+	if err := json.Unmarshal(response.Data, result); err != nil {
+		return fmt.Errorf("failed to unmarshal data: %w", err)
+	}
+
+	return nil
 }
 
 // NewClient creates a new GitHub client
@@ -25,24 +124,53 @@ func NewClient(httpClient *http.Client, verbose bool) *Client {
 
 // NewClientWithBaseURL creates a new GitHub client with a custom base URL
 func NewClientWithBaseURL(httpClient *http.Client, baseURL string, verbose bool) *Client {
-	if verbose {
-		// Wrap the transport with our logging transport
-		transport := httpClient.Transport
-		if transport == nil {
-			transport = http.DefaultTransport
-		}
-
-		httpClient.Transport = &loggingTransport{
-			transport: transport,
-		}
-	}
-
-	client := graphql.NewClient(baseURL, httpClient)
-
 	return &Client{
-		graphql: client,
-		verbose: verbose,
+		httpClient: httpClient,
+		baseURL:    baseURL,
+		verbose:    verbose,
 	}
+}
+
+// GetProjectNodeId fetches the node ID for a project, either from an organization or personal project
+func (c *Client) GetProjectNodeId(projectNumber int, org string) (string, error) {
+	var result struct {
+		Organization *struct {
+			ProjectV2 *struct {
+				ID string
+			}
+		}
+		Viewer *struct {
+			ProjectV2 *struct {
+				ID string
+			}
+		}
+	}
+
+	variables := map[string]interface{}{
+		"number": projectNumber,
+	}
+
+	queryName := "get_viewer_project_node_id"
+	if org != "" {
+		queryName = "get_org_project_node_id"
+		variables["login"] = org
+	}
+
+	if err := c.executeQuery(context.Background(), queryName, variables, &result); err != nil {
+		return "", err
+	}
+
+	if org != "" {
+		if result.Organization == nil || result.Organization.ProjectV2 == nil {
+			return "", fmt.Errorf("GraphQL query failed for org project: project not found")
+		}
+		return result.Organization.ProjectV2.ID, nil
+	}
+
+	if result.Viewer == nil || result.Viewer.ProjectV2 == nil {
+		return "", fmt.Errorf("GraphQL query failed for viewer project: project not found")
+	}
+	return result.Viewer.ProjectV2.ID, nil
 }
 
 // FetchProjectState fetches the current state of a project
@@ -140,19 +268,19 @@ func (c *Client) FetchProjectState(projectNumber int, startField, endField strin
 	}
 
 	variables := map[string]interface{}{
-		"number": graphql.Int(projectNumber),
+		"number": projectNumber,
 	}
 
-	err := c.graphql.Query(context.Background(), &query, variables)
-	if err != nil {
-		return nil, fmt.Errorf("GraphQL query failed: %w", err)
+	if err := c.executeQuery(context.Background(), "get_project_state", variables, &query); err != nil {
+		return nil, fmt.Errorf("failed to fetch project state: %w", err)
 	}
 
 	// Convert the GraphQL response to our ProjectState type
 	state := &types.ProjectState{
 		Timestamp:     time.Now(),
 		ProjectNumber: projectNumber,
-		Items:         make([]types.Item, 0),
+
+		Items: make([]types.Item, 0),
 	}
 
 	for _, item := range query.Viewer.ProjectV2.Items.Nodes {
@@ -234,41 +362,4 @@ func (c *Client) FetchProjectState(projectNumber int, startField, endField strin
 	}
 
 	return state, nil
-}
-
-type loggingTransport struct {
-	transport http.RoundTripper
-}
-
-func (t *loggingTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	if req.Body != nil {
-		// Log the request
-		body, err := ioutil.ReadAll(req.Body)
-		if err != nil {
-			return nil, err
-		}
-		// Restore the body for the actual request
-		req.Body = ioutil.NopCloser(bytes.NewBuffer(body))
-
-		fmt.Printf("\nGraphQL Request:\n%s\n", string(body))
-	}
-
-	resp, err := t.transport.RoundTrip(req)
-	if err != nil {
-		return nil, err
-	}
-
-	// Log the response
-	if resp.Body != nil {
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return nil, err
-		}
-		// Restore the body for the actual response
-		resp.Body = ioutil.NopCloser(bytes.NewBuffer(body))
-
-		fmt.Printf("\nGraphQL Response:\n%s\n", string(body))
-	}
-
-	return resp, nil
 }
