@@ -334,3 +334,122 @@ func TestCalculateRiskLevel(t *testing.T) {
 		})
 	}
 }
+
+func TestCalculateTimelineRiskLevel(t *testing.T) {
+	tests := []struct {
+		name          string
+		startDelta    int
+		durationDelta int
+		moderateRisk  int
+		highRisk      int
+		extremeRisk   int
+		expectedLevel RiskLevel
+	}{
+		{
+			name:          "on track - no changes",
+			startDelta:    0,
+			durationDelta: 0,
+			moderateRisk:  7,
+			highRisk:      14,
+			extremeRisk:   30,
+			expectedLevel: RiskLevelOnTrack,
+		},
+		{
+			name:          "ahead of schedule - earlier start",
+			startDelta:    -5,
+			durationDelta: 0,
+			moderateRisk:  7,
+			highRisk:      14,
+			extremeRisk:   30,
+			expectedLevel: RiskLevelAhead,
+		},
+		{
+			name:          "ahead of schedule - shorter duration",
+			startDelta:    0,
+			durationDelta: -5,
+			moderateRisk:  7,
+			highRisk:      14,
+			extremeRisk:   30,
+			expectedLevel: RiskLevelOnTrack,
+		},
+		{
+			name:          "ahead of schedule - earlier start and shorter duration",
+			startDelta:    -5,
+			durationDelta: -3,
+			moderateRisk:  7,
+			highRisk:      14,
+			extremeRisk:   30,
+			expectedLevel: RiskLevelAhead,
+		},
+		{
+			name:          "moderate risk - delayed start",
+			startDelta:    10,
+			durationDelta: 0,
+			moderateRisk:  7,
+			highRisk:      14,
+			extremeRisk:   30,
+			expectedLevel: RiskLevelModerate,
+		},
+		{
+			name:          "moderate risk - increased duration",
+			startDelta:    0,
+			durationDelta: 10,
+			moderateRisk:  7,
+			highRisk:      14,
+			extremeRisk:   30,
+			expectedLevel: RiskLevelModerate,
+		},
+		{
+			name:          "high risk - delayed start",
+			startDelta:    20,
+			durationDelta: 0,
+			moderateRisk:  7,
+			highRisk:      14,
+			extremeRisk:   30,
+			expectedLevel: RiskLevelHigh,
+		},
+		{
+			name:          "high risk - increased duration",
+			startDelta:    0,
+			durationDelta: 20,
+			moderateRisk:  7,
+			highRisk:      14,
+			extremeRisk:   30,
+			expectedLevel: RiskLevelHigh,
+		},
+		{
+			name:          "extreme risk - delayed start",
+			startDelta:    35,
+			durationDelta: 0,
+			moderateRisk:  7,
+			highRisk:      14,
+			extremeRisk:   30,
+			expectedLevel: RiskLevelExtreme,
+		},
+		{
+			name:          "extreme risk - increased duration",
+			startDelta:    0,
+			durationDelta: 35,
+			moderateRisk:  7,
+			highRisk:      14,
+			extremeRisk:   30,
+			expectedLevel: RiskLevelExtreme,
+		},
+		{
+			name:          "use max of start delay and duration increase",
+			startDelta:    10,
+			durationDelta: 20,
+			moderateRisk:  7,
+			highRisk:      14,
+			extremeRisk:   30,
+			expectedLevel: RiskLevelHigh,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			level := calculateTimelineRiskLevel(tt.startDelta, tt.durationDelta, tt.moderateRisk, tt.highRisk, tt.extremeRisk)
+			assert.Equal(t, tt.expectedLevel, level)
+		})
+	}
+}

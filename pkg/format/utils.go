@@ -27,6 +27,34 @@ func calculateRiskLevel(durationDelta, moderateRisk, highRisk, extremeRisk int) 
 	return RiskLevelOnTrack
 }
 
+// calculateTimelineRiskLevel determines the risk level based on both start delay and duration change
+func calculateTimelineRiskLevel(startDaysDelta, durationDelta, moderateRisk, highRisk, extremeRisk int) RiskLevel {
+	// If we're ahead of schedule (earlier start or shorter duration)
+	if startDaysDelta < 0 && durationDelta <= 0 {
+		return RiskLevelAhead
+	}
+
+	// Use the maximum of start delay and duration increase to determine risk
+	maxDelay := startDaysDelta
+	if durationDelta > startDaysDelta {
+		maxDelay = durationDelta
+	}
+
+	if maxDelay == 0 {
+		return RiskLevelOnTrack
+	}
+	if maxDelay >= extremeRisk {
+		return RiskLevelExtreme
+	}
+	if maxDelay >= highRisk {
+		return RiskLevelHigh
+	}
+	if maxDelay >= moderateRisk {
+		return RiskLevelModerate
+	}
+	return RiskLevelOnTrack
+}
+
 // formatHumanDuration formats a duration in days into a human-readable string
 func formatHumanDuration(days int) string {
 	if days == 0 {

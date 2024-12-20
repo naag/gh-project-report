@@ -74,7 +74,8 @@ func (f *TextFormatter) Format(diff types.ProjectDiff) string {
 
 			// Timeline changes
 			if change.DateChange != nil {
-				risk := calculateRiskLevel(
+				risk := calculateTimelineRiskLevel(
+					change.DateChange.StartDaysDelta,
 					change.DateChange.DurationDelta,
 					f.options.ModerateRiskThreshold,
 					f.options.HighRiskThreshold,

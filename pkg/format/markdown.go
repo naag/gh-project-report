@@ -82,7 +82,8 @@ func (f *TableFormatter) Format(diff types.ProjectDiff) string {
 
 		// Handle timeline changes via DateSpan only
 		if change.DateChange != nil {
-			risk := calculateRiskLevel(
+			risk := calculateTimelineRiskLevel(
+				change.DateChange.StartDaysDelta,
 				change.DateChange.DurationDelta,
 				f.options.ModerateRiskThreshold,
 				f.options.HighRiskThreshold,
