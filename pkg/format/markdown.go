@@ -82,12 +82,12 @@ func (f *TableFormatter) Format(diff types.ProjectDiff) string {
 
 		// Handle timeline changes via DateSpan only
 		if change.DateChange != nil {
-			risk := calculateTimelineRiskLevel(
+			delay := calculateTimelineDelayLevel(
 				change.DateChange.StartDaysDelta,
 				change.DateChange.DurationDelta,
-				f.options.ModerateRiskThreshold,
-				f.options.HighRiskThreshold,
-				f.options.ExtremeRiskThreshold,
+				f.options.ModerateDelayThreshold,
+				f.options.HighDelayThreshold,
+				f.options.ExtremeDelayThreshold,
 			)
 			details := formatTimelineDetails(change.DateChange, change.Before.DateSpan, change.After.DateSpan)
 			afterDuration := formatHumanDuration(change.After.DateSpan.DurationDays())
@@ -100,7 +100,7 @@ func (f *TableFormatter) Format(diff types.ProjectDiff) string {
 
 			timelineTable.Rows = append(timelineTable.Rows, []string{
 				title,
-				string(risk),
+				string(delay),
 				details,
 				formatDateWithChange(change.After.DateSpan.Start, change.Before.DateSpan.Start, f.options.DateFormat),
 				formatDateWithChange(change.After.DateSpan.End, change.Before.DateSpan.End, f.options.DateFormat),

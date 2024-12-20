@@ -276,179 +276,179 @@ func TestParseRelativeDuration(t *testing.T) {
 	}
 }
 
-func TestCalculateRiskLevel(t *testing.T) {
+func TestCalculateDelayLevel(t *testing.T) {
 	tests := []struct {
 		name          string
 		durationDelta int
-		moderateRisk  int
-		highRisk      int
-		extremeRisk   int
-		expectedLevel RiskLevel
+		moderateDelay int
+		highDelay     int
+		extremeDelay  int
+		expectedLevel DelayLevel
 	}{
 		{
 			name:          "on track",
 			durationDelta: 0,
-			moderateRisk:  7,
-			highRisk:      14,
-			extremeRisk:   30,
-			expectedLevel: RiskLevelOnTrack,
+			moderateDelay: 7,
+			highDelay:     14,
+			extremeDelay:  30,
+			expectedLevel: DelayLevelOnTrack,
 		},
 		{
 			name:          "ahead of schedule",
 			durationDelta: -5,
-			moderateRisk:  7,
-			highRisk:      14,
-			extremeRisk:   30,
-			expectedLevel: RiskLevelAhead,
+			moderateDelay: 7,
+			highDelay:     14,
+			extremeDelay:  30,
+			expectedLevel: DelayLevelAhead,
 		},
 		{
-			name:          "moderate risk",
+			name:          "moderate delay",
 			durationDelta: 10,
-			moderateRisk:  7,
-			highRisk:      14,
-			extremeRisk:   30,
-			expectedLevel: RiskLevelModerate,
+			moderateDelay: 7,
+			highDelay:     14,
+			extremeDelay:  30,
+			expectedLevel: DelayLevelModerate,
 		},
 		{
-			name:          "high risk",
+			name:          "high delay",
 			durationDelta: 20,
-			moderateRisk:  7,
-			highRisk:      14,
-			extremeRisk:   30,
-			expectedLevel: RiskLevelHigh,
+			moderateDelay: 7,
+			highDelay:     14,
+			extremeDelay:  30,
+			expectedLevel: DelayLevelHigh,
 		},
 		{
-			name:          "extreme risk",
+			name:          "extreme delay",
 			durationDelta: 35,
-			moderateRisk:  7,
-			highRisk:      14,
-			extremeRisk:   30,
-			expectedLevel: RiskLevelExtreme,
+			moderateDelay: 7,
+			highDelay:     14,
+			extremeDelay:  30,
+			expectedLevel: DelayLevelExtreme,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			level := calculateRiskLevel(tt.durationDelta, tt.moderateRisk, tt.highRisk, tt.extremeRisk)
+			level := calculateDelayLevel(tt.durationDelta, tt.moderateDelay, tt.highDelay, tt.extremeDelay)
 			assert.Equal(t, tt.expectedLevel, level)
 		})
 	}
 }
 
-func TestCalculateTimelineRiskLevel(t *testing.T) {
+func TestCalculateTimelineDelayLevel(t *testing.T) {
 	tests := []struct {
 		name          string
 		startDelta    int
 		durationDelta int
-		moderateRisk  int
-		highRisk      int
-		extremeRisk   int
-		expectedLevel RiskLevel
+		moderateDelay int
+		highDelay     int
+		extremeDelay  int
+		expectedLevel DelayLevel
 	}{
 		{
 			name:          "on track - no changes",
 			startDelta:    0,
 			durationDelta: 0,
-			moderateRisk:  7,
-			highRisk:      14,
-			extremeRisk:   30,
-			expectedLevel: RiskLevelOnTrack,
+			moderateDelay: 7,
+			highDelay:     14,
+			extremeDelay:  30,
+			expectedLevel: DelayLevelOnTrack,
 		},
 		{
 			name:          "ahead of schedule - earlier start",
 			startDelta:    -5,
 			durationDelta: 0,
-			moderateRisk:  7,
-			highRisk:      14,
-			extremeRisk:   30,
-			expectedLevel: RiskLevelAhead,
+			moderateDelay: 7,
+			highDelay:     14,
+			extremeDelay:  30,
+			expectedLevel: DelayLevelAhead,
 		},
 		{
 			name:          "ahead of schedule - shorter duration",
 			startDelta:    0,
 			durationDelta: -5,
-			moderateRisk:  7,
-			highRisk:      14,
-			extremeRisk:   30,
-			expectedLevel: RiskLevelOnTrack,
+			moderateDelay: 7,
+			highDelay:     14,
+			extremeDelay:  30,
+			expectedLevel: DelayLevelOnTrack,
 		},
 		{
 			name:          "ahead of schedule - earlier start and shorter duration",
 			startDelta:    -5,
 			durationDelta: -3,
-			moderateRisk:  7,
-			highRisk:      14,
-			extremeRisk:   30,
-			expectedLevel: RiskLevelAhead,
+			moderateDelay: 7,
+			highDelay:     14,
+			extremeDelay:  30,
+			expectedLevel: DelayLevelAhead,
 		},
 		{
-			name:          "moderate risk - delayed start",
+			name:          "moderate delay - delayed start",
 			startDelta:    10,
 			durationDelta: 0,
-			moderateRisk:  7,
-			highRisk:      14,
-			extremeRisk:   30,
-			expectedLevel: RiskLevelModerate,
+			moderateDelay: 7,
+			highDelay:     14,
+			extremeDelay:  30,
+			expectedLevel: DelayLevelModerate,
 		},
 		{
-			name:          "moderate risk - increased duration",
+			name:          "moderate delay - increased duration",
 			startDelta:    0,
 			durationDelta: 10,
-			moderateRisk:  7,
-			highRisk:      14,
-			extremeRisk:   30,
-			expectedLevel: RiskLevelModerate,
+			moderateDelay: 7,
+			highDelay:     14,
+			extremeDelay:  30,
+			expectedLevel: DelayLevelModerate,
 		},
 		{
-			name:          "high risk - delayed start",
+			name:          "high delay - delayed start",
 			startDelta:    20,
 			durationDelta: 0,
-			moderateRisk:  7,
-			highRisk:      14,
-			extremeRisk:   30,
-			expectedLevel: RiskLevelHigh,
+			moderateDelay: 7,
+			highDelay:     14,
+			extremeDelay:  30,
+			expectedLevel: DelayLevelHigh,
 		},
 		{
-			name:          "high risk - increased duration",
+			name:          "high delay - increased duration",
 			startDelta:    0,
 			durationDelta: 20,
-			moderateRisk:  7,
-			highRisk:      14,
-			extremeRisk:   30,
-			expectedLevel: RiskLevelHigh,
+			moderateDelay: 7,
+			highDelay:     14,
+			extremeDelay:  30,
+			expectedLevel: DelayLevelHigh,
 		},
 		{
-			name:          "extreme risk - delayed start",
+			name:          "extreme delay - delayed start",
 			startDelta:    35,
 			durationDelta: 0,
-			moderateRisk:  7,
-			highRisk:      14,
-			extremeRisk:   30,
-			expectedLevel: RiskLevelExtreme,
+			moderateDelay: 7,
+			highDelay:     14,
+			extremeDelay:  30,
+			expectedLevel: DelayLevelExtreme,
 		},
 		{
-			name:          "extreme risk - increased duration",
+			name:          "extreme delay - increased duration",
 			startDelta:    0,
 			durationDelta: 35,
-			moderateRisk:  7,
-			highRisk:      14,
-			extremeRisk:   30,
-			expectedLevel: RiskLevelExtreme,
+			moderateDelay: 7,
+			highDelay:     14,
+			extremeDelay:  30,
+			expectedLevel: DelayLevelExtreme,
 		},
 		{
 			name:          "use max of start delay and duration increase",
 			startDelta:    10,
 			durationDelta: 20,
-			moderateRisk:  7,
-			highRisk:      14,
-			extremeRisk:   30,
-			expectedLevel: RiskLevelHigh,
+			moderateDelay: 7,
+			highDelay:     14,
+			extremeDelay:  30,
+			expectedLevel: DelayLevelHigh,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			level := calculateTimelineRiskLevel(tt.startDelta, tt.durationDelta, tt.moderateRisk, tt.highRisk, tt.extremeRisk)
+			level := calculateTimelineDelayLevel(tt.startDelta, tt.durationDelta, tt.moderateDelay, tt.highDelay, tt.extremeDelay)
 			assert.Equal(t, tt.expectedLevel, level)
 		})
 	}

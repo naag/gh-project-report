@@ -7,52 +7,52 @@ import (
 	"time"
 )
 
-// calculateRiskLevel determines the risk level based on duration delta and thresholds
-func calculateRiskLevel(durationDelta, moderateRisk, highRisk, extremeRisk int) RiskLevel {
+// calculateDelayLevel determines the delay level based on duration delta and thresholds
+func calculateDelayLevel(durationDelta, moderateDelay, highDelay, extremeDelay int) DelayLevel {
 	if durationDelta < 0 {
-		return RiskLevelAhead
+		return DelayLevelAhead
 	}
 	if durationDelta == 0 {
-		return RiskLevelOnTrack
+		return DelayLevelOnTrack
 	}
-	if durationDelta >= extremeRisk {
-		return RiskLevelExtreme
+	if durationDelta >= extremeDelay {
+		return DelayLevelExtreme
 	}
-	if durationDelta >= highRisk {
-		return RiskLevelHigh
+	if durationDelta >= highDelay {
+		return DelayLevelHigh
 	}
-	if durationDelta >= moderateRisk {
-		return RiskLevelModerate
+	if durationDelta >= moderateDelay {
+		return DelayLevelModerate
 	}
-	return RiskLevelOnTrack
+	return DelayLevelOnTrack
 }
 
-// calculateTimelineRiskLevel determines the risk level based on both start delay and duration change
-func calculateTimelineRiskLevel(startDaysDelta, durationDelta, moderateRisk, highRisk, extremeRisk int) RiskLevel {
+// calculateTimelineDelayLevel determines the delay level based on both start delay and duration change
+func calculateTimelineDelayLevel(startDaysDelta, durationDelta, moderateDelay, highDelay, extremeDelay int) DelayLevel {
 	// If we're ahead of schedule (earlier start or shorter duration)
 	if startDaysDelta < 0 && durationDelta <= 0 {
-		return RiskLevelAhead
+		return DelayLevelAhead
 	}
 
-	// Use the maximum of start delay and duration increase to determine risk
+	// Use the maximum of start delay and duration increase to determine delay
 	maxDelay := startDaysDelta
 	if durationDelta > startDaysDelta {
 		maxDelay = durationDelta
 	}
 
 	if maxDelay == 0 {
-		return RiskLevelOnTrack
+		return DelayLevelOnTrack
 	}
-	if maxDelay >= extremeRisk {
-		return RiskLevelExtreme
+	if maxDelay >= extremeDelay {
+		return DelayLevelExtreme
 	}
-	if maxDelay >= highRisk {
-		return RiskLevelHigh
+	if maxDelay >= highDelay {
+		return DelayLevelHigh
 	}
-	if maxDelay >= moderateRisk {
-		return RiskLevelModerate
+	if maxDelay >= moderateDelay {
+		return DelayLevelModerate
 	}
-	return RiskLevelOnTrack
+	return DelayLevelOnTrack
 }
 
 // formatHumanDuration formats a duration in days into a human-readable string

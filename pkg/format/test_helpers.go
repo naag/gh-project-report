@@ -64,7 +64,7 @@ func createTestDiff() types.ProjectDiff {
 				DateChange: &types.DateSpanChange{
 					StartDaysDelta: 0,
 					EndDaysDelta:   16,
-					DurationDelta:  8, // Changed to be in the moderate risk range (7-14 days)
+					DurationDelta:  8, // Changed to be in the moderate delay range (7-14 days)
 				},
 				FieldChanges: []types.FieldChange{
 					{

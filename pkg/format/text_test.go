@@ -21,7 +21,7 @@ func TestTextFormatter(t *testing.T) {
 	assert.Contains(t, output, "Status: Removed")
 	assert.Contains(t, output, "status: Todo → In Progress")
 	assert.Contains(t, output, "priority: Medium → High")
-	assert.Contains(t, output, string(RiskLevelModerate)) // Moderate risk emoji for 8 days delay
+	assert.Contains(t, output, string(DelayLevelModerate)) // Moderate delay emoji for 8 days delay
 }
 
 func TestTextFormatterNoChanges(t *testing.T) {
@@ -34,13 +34,13 @@ func TestTextFormatterNoChanges(t *testing.T) {
 func TestTextFormatterCustomOptions(t *testing.T) {
 	diff := createTestDiff()
 
-	t.Run("custom risk thresholds", func(t *testing.T) {
+	t.Run("custom delay thresholds", func(t *testing.T) {
 		formatter := NewTextFormatter(
-			WithModerateRiskThreshold(10),
-			WithHighRiskThreshold(15),
+			WithModerateDelayThreshold(10),
+			WithHighDelayThreshold(15),
 		)
 		output := formatter.Format(diff)
-		assert.Contains(t, output, string(RiskLevelOnTrack)) // 8 days < 10 day threshold
+		assert.Contains(t, output, string(DelayLevelOnTrack)) // 8 days < 10 day threshold
 	})
 
 	t.Run("custom date format", func(t *testing.T) {

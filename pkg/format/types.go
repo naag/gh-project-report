@@ -6,10 +6,10 @@ import (
 
 // FormatterOptions contains configuration options for formatters
 type FormatterOptions struct {
-	DateFormat            string
-	ModerateRiskThreshold int
-	HighRiskThreshold     int
-	ExtremeRiskThreshold  int
+	DateFormat             string
+	ModerateDelayThreshold int
+	HighDelayThreshold     int
+	ExtremeDelayThreshold  int
 }
 
 // Formatter interface defines methods that all formatters must implement
@@ -17,24 +17,24 @@ type Formatter interface {
 	Format(diff types.ProjectDiff) string
 }
 
-// RiskLevel represents the risk level of a timeline change
-type RiskLevel string
+// DelayLevel represents the delay level of a timeline change
+type DelayLevel string
 
 const (
-	RiskLevelOnTrack  RiskLevel = "🔵 On track"
-	RiskLevelAhead    RiskLevel = "🚀 Ahead of schedule"
-	RiskLevelModerate RiskLevel = "🟠 Moderate risk"
-	RiskLevelHigh     RiskLevel = "🔴 High risk"
-	RiskLevelExtreme  RiskLevel = "🚫 Extreme risk"
+	DelayLevelOnTrack  DelayLevel = "🔵 On track"
+	DelayLevelAhead    DelayLevel = "🚀 Ahead of schedule"
+	DelayLevelModerate DelayLevel = "🟠 Moderate delay"
+	DelayLevelHigh     DelayLevel = "🔴 High delay"
+	DelayLevelExtreme  DelayLevel = "🚫 Extreme delay"
 )
 
 // DefaultOptions returns the default formatter options
 func DefaultOptions() FormatterOptions {
 	return FormatterOptions{
-		DateFormat:            "Jan 2, 2006",
-		ModerateRiskThreshold: 7,  // 1 week
-		HighRiskThreshold:     14, // 2 weeks
-		ExtremeRiskThreshold:  30, // 1 month
+		DateFormat:             "Jan 2, 2006",
+		ModerateDelayThreshold: 7,  // 1 week
+		HighDelayThreshold:     14, // 2 weeks
+		ExtremeDelayThreshold:  30, // 1 month
 	}
 }
 
@@ -45,24 +45,24 @@ func WithDateFormat(format string) func(*FormatterOptions) {
 	}
 }
 
-// WithModerateRiskThreshold sets the moderate risk threshold option
-func WithModerateRiskThreshold(days int) func(*FormatterOptions) {
+// WithModerateDelayThreshold sets the moderate delay threshold option
+func WithModerateDelayThreshold(days int) func(*FormatterOptions) {
 	return func(o *FormatterOptions) {
-		o.ModerateRiskThreshold = days
+		o.ModerateDelayThreshold = days
 	}
 }
 
-// WithHighRiskThreshold sets the high risk threshold option
-func WithHighRiskThreshold(days int) func(*FormatterOptions) {
+// WithHighDelayThreshold sets the high delay threshold option
+func WithHighDelayThreshold(days int) func(*FormatterOptions) {
 	return func(o *FormatterOptions) {
-		o.HighRiskThreshold = days
+		o.HighDelayThreshold = days
 	}
 }
 
-// WithExtremeRiskThreshold sets the extreme risk threshold option
-func WithExtremeRiskThreshold(days int) func(*FormatterOptions) {
+// WithExtremeDelayThreshold sets the extreme delay threshold option
+func WithExtremeDelayThreshold(days int) func(*FormatterOptions) {
 	return func(o *FormatterOptions) {
-		o.ExtremeRiskThreshold = days
+		o.ExtremeDelayThreshold = days
 	}
 }
 

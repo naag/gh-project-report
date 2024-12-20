@@ -206,7 +206,7 @@ Some text
 								},
 								{
 									"Task 2",
-									"🔴 High risk",
+									"🔴 High delay",
 									"Start delayed by 3 weeks",
 									"Jan 22, 2024 → Feb 12, 2024",
 									"Feb 19, 2024 → Mar 11, 2024",
@@ -243,7 +243,7 @@ Some text
 | Task | Status | Details | Start Date | End Date | Duration |
 |:------|:-----:|:------|------:|------:|------:|
 | Task 1 | 🔵 On track | Duration increased by 2 weeks | Jan 15, 2024 | Feb 14, 2024 → Feb 28, 2024 | 6 weeks (+14 days) |
-| Task 2 | 🔴 High risk | Start delayed by 3 weeks | Jan 22, 2024 → Feb 12, 2024 | Feb 19, 2024 → Mar 11, 2024 | 4 weeks (-21 days) |
+| Task 2 | 🔴 High delay | Start delayed by 3 weeks | Jan 22, 2024 → Feb 12, 2024 | Feb 19, 2024 → Mar 11, 2024 | 4 weeks (-21 days) |
 
 ## Status Summary
 

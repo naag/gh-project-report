@@ -10,9 +10,9 @@ func TestDefaultOptions(t *testing.T) {
 	opts := DefaultOptions()
 
 	assert.Equal(t, "Jan 2, 2006", opts.DateFormat)
-	assert.Equal(t, 7, opts.ModerateRiskThreshold)
-	assert.Equal(t, 14, opts.HighRiskThreshold)
-	assert.Equal(t, 30, opts.ExtremeRiskThreshold)
+	assert.Equal(t, 7, opts.ModerateDelayThreshold)
+	assert.Equal(t, 14, opts.HighDelayThreshold)
+	assert.Equal(t, 30, opts.ExtremeDelayThreshold)
 }
 
 func TestOptionFunctions(t *testing.T) {
@@ -22,42 +22,42 @@ func TestOptionFunctions(t *testing.T) {
 		assert.Equal(t, "2006-01-02", opts.DateFormat)
 	})
 
-	t.Run("WithModerateRiskThreshold", func(t *testing.T) {
+	t.Run("WithModerateDelayThreshold", func(t *testing.T) {
 		opts := DefaultOptions()
-		WithModerateRiskThreshold(10)(&opts)
-		assert.Equal(t, 10, opts.ModerateRiskThreshold)
+		WithModerateDelayThreshold(10)(&opts)
+		assert.Equal(t, 10, opts.ModerateDelayThreshold)
 	})
 
-	t.Run("WithHighRiskThreshold", func(t *testing.T) {
+	t.Run("WithHighDelayThreshold", func(t *testing.T) {
 		opts := DefaultOptions()
-		WithHighRiskThreshold(21)(&opts)
-		assert.Equal(t, 21, opts.HighRiskThreshold)
+		WithHighDelayThreshold(21)(&opts)
+		assert.Equal(t, 21, opts.HighDelayThreshold)
 	})
 
-	t.Run("WithExtremeRiskThreshold", func(t *testing.T) {
+	t.Run("WithExtremeDelayThreshold", func(t *testing.T) {
 		opts := DefaultOptions()
-		WithExtremeRiskThreshold(45)(&opts)
-		assert.Equal(t, 45, opts.ExtremeRiskThreshold)
+		WithExtremeDelayThreshold(45)(&opts)
+		assert.Equal(t, 45, opts.ExtremeDelayThreshold)
 	})
 
 	t.Run("chaining options", func(t *testing.T) {
 		opts := DefaultOptions()
-		WithModerateRiskThreshold(10)(&opts)
-		WithHighRiskThreshold(21)(&opts)
-		WithExtremeRiskThreshold(45)(&opts)
+		WithModerateDelayThreshold(10)(&opts)
+		WithHighDelayThreshold(21)(&opts)
+		WithExtremeDelayThreshold(45)(&opts)
 		WithDateFormat("2006-01-02")(&opts)
 
-		assert.Equal(t, 10, opts.ModerateRiskThreshold)
-		assert.Equal(t, 21, opts.HighRiskThreshold)
-		assert.Equal(t, 45, opts.ExtremeRiskThreshold)
+		assert.Equal(t, 10, opts.ModerateDelayThreshold)
+		assert.Equal(t, 21, opts.HighDelayThreshold)
+		assert.Equal(t, 45, opts.ExtremeDelayThreshold)
 		assert.Equal(t, "2006-01-02", opts.DateFormat)
 	})
 }
 
-func TestRiskLevelConstants(t *testing.T) {
-	assert.Equal(t, RiskLevel("🔵 On track"), RiskLevelOnTrack)
-	assert.Equal(t, RiskLevel("🚀 Ahead of schedule"), RiskLevelAhead)
-	assert.Equal(t, RiskLevel("🟠 Moderate risk"), RiskLevelModerate)
-	assert.Equal(t, RiskLevel("🔴 High risk"), RiskLevelHigh)
-	assert.Equal(t, RiskLevel("🚫 Extreme risk"), RiskLevelExtreme)
+func TestDelayLevelConstants(t *testing.T) {
+	assert.Equal(t, DelayLevel("🔵 On track"), DelayLevelOnTrack)
+	assert.Equal(t, DelayLevel("🚀 Ahead of schedule"), DelayLevelAhead)
+	assert.Equal(t, DelayLevel("🟠 Moderate delay"), DelayLevelModerate)
+	assert.Equal(t, DelayLevel("🔴 High delay"), DelayLevelHigh)
+	assert.Equal(t, DelayLevel("🚫 Extreme delay"), DelayLevelExtreme)
 }

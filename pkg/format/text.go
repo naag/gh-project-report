@@ -74,15 +74,15 @@ func (f *TextFormatter) Format(diff types.ProjectDiff) string {
 
 			// Timeline changes
 			if change.DateChange != nil {
-				risk := calculateTimelineRiskLevel(
+				delay := calculateTimelineDelayLevel(
 					change.DateChange.StartDaysDelta,
 					change.DateChange.DurationDelta,
-					f.options.ModerateRiskThreshold,
-					f.options.HighRiskThreshold,
-					f.options.ExtremeRiskThreshold,
+					f.options.ModerateDelayThreshold,
+					f.options.HighDelayThreshold,
+					f.options.ExtremeDelayThreshold,
 				)
 				sb.WriteString(fmt.Sprintf("  Timeline: %s %s\n",
-					string(risk),
+					string(delay),
 					formatHumanDuration(change.DateChange.DurationDelta),
 				))
 				sb.WriteString(fmt.Sprintf("  Before: %s → %s\n",

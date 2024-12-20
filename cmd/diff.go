@@ -77,9 +77,9 @@ func runDiff(cmd *cobra.Command, args []string) error {
 	// Create formatter with custom options
 	var formatter format.Formatter
 	opts := []func(*format.FormatterOptions){
-		format.WithModerateRiskThreshold(moderateRisk),
-		format.WithHighRiskThreshold(highRisk),
-		format.WithExtremeRiskThreshold(extremeRisk),
+		format.WithModerateDelayThreshold(moderateRisk),
+		format.WithHighDelayThreshold(highRisk),
+		format.WithExtremeDelayThreshold(extremeRisk),
 	}
 
 	if outputFormat == "text" {
