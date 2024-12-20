@@ -1,7 +1,0 @@
-query GetViewerProjectNodeId($number: Int!) {
-  viewer {
-    projectV2(number: $number) {
-      id
-    }
-  }
-} 

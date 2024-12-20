@@ -1,7 +1,0 @@
-query GetOrgProjectNodeId($login: String!, $number: Int!) {
-  organization(login: $login) {
-    projectV2(number: $number) {
-      id
-    }
-  }
-} 
