@@ -18,6 +18,7 @@ var (
 	highRisk     int
 	extremeRisk  int
 	outputFormat string
+	filter       string
 )
 
 var diffCmd = &cobra.Command{
@@ -34,6 +35,10 @@ The output format can be specified using the --format flag:
 - text: Plain text output (default)
 - markdown: Markdown table output
 
+You can filter items using the --filter flag with attribute=value format:
+- gh-project-report diff --range "last 1 week" --filter "Team=UI"
+- gh-project-report diff --range "last 1 week" --filter "Priority=High"
+
 Examples:
   gh-project-report diff --from 2024-01-01T15:04:05Z --to 2024-01-02T15:04:05Z
   gh-project-report diff --range "last 30 minutes"
@@ -41,7 +46,8 @@ Examples:
   gh-project-report diff --range "last 1 day"
   gh-project-report diff --range "last 1 week"
   gh-project-report diff --range "last 1 month"
-  gh-project-report diff --range "last 1 week" --format markdown`,
+  gh-project-report diff --range "last 1 week" --format markdown
+  gh-project-report diff --range "last 1 week" --filter "Team=UI"`,
 	RunE: runDiff,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		// Check that either timeRange or both fromDate and toDate are provided
@@ -59,13 +65,14 @@ Examples:
 func init() {
 	rootCmd.AddCommand(diffCmd)
 
-	diffCmd.Flags().StringVarP(&fromDate, "from", "f", "", "Start date (ISO8601 format)")
-	diffCmd.Flags().StringVarP(&toDate, "to", "t", "", "End date (ISO8601 format)")
+	diffCmd.Flags().StringVar(&fromDate, "from", "", "Start date (ISO8601 format)")
+	diffCmd.Flags().StringVar(&toDate, "to", "", "End date (ISO8601 format)")
 	diffCmd.Flags().StringVarP(&timeRange, "range", "r", "", "Human-readable time range (e.g., \"last 30 minutes\", \"last 2 hours\")")
 	diffCmd.Flags().IntVar(&moderateRisk, "moderate-risk", 7, "Days of delay to consider moderate risk (default: 7)")
 	diffCmd.Flags().IntVar(&highRisk, "high-risk", 14, "Days of delay to consider high risk (default: 14)")
 	diffCmd.Flags().IntVar(&extremeRisk, "extreme-risk", 30, "Days of delay to consider extreme risk (default: 30)")
 	diffCmd.Flags().StringVarP(&outputFormat, "format", "o", "text", "Output format (text or markdown)")
+	diffCmd.Flags().StringVarP(&filter, "filter", "f", "", "Filter items using attribute=value format")
 }
 
 func runDiff(cmd *cobra.Command, args []string) error {
@@ -123,6 +130,19 @@ func runDiff(cmd *cobra.Command, args []string) error {
 	toState, err := store.LoadState(projectNumber, toTime)
 	if err != nil {
 		return fmt.Errorf("failed to load to state: %w", err)
+	}
+
+	// Apply filter if specified
+	if filter != "" {
+		fromState, err = fromState.FilterState(filter)
+		if err != nil {
+			return fmt.Errorf("failed to apply filter to from state: %w", err)
+		}
+
+		toState, err = toState.FilterState(filter)
+		if err != nil {
+			return fmt.Errorf("failed to apply filter to to state: %w", err)
+		}
 	}
 
 	fmt.Printf("From: %s\n", fromState.Filename)
