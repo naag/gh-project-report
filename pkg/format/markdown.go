@@ -88,7 +88,7 @@ func (f *TableFormatter) Format(diff types.ProjectDiff) string {
 				f.options.HighRiskThreshold,
 				f.options.ExtremeRiskThreshold,
 			)
-			details := formatTimelineDetails(change.DateChange)
+			details := formatTimelineDetails(change.DateChange, change.Before.DateSpan, change.After.DateSpan)
 			afterDuration := formatHumanDuration(change.After.DateSpan.DurationDays())
 			durationDiff := ""
 			if change.DateChange.DurationDelta != 0 {
@@ -176,21 +176,25 @@ func hasFieldChanges(changes []types.ItemDiff) bool {
 }
 
 // formatTimelineDetails formats the timeline change details
-func formatTimelineDetails(change *types.DateSpanChange) string {
+func formatTimelineDetails(change *types.DateSpanChange, before, after types.DateSpan) string {
 	var parts []string
 	if change.StartDaysDelta != 0 {
 		verb := "delayed"
 		if change.StartDaysDelta < 0 {
 			verb = "moved earlier"
 		}
-		parts = append(parts, fmt.Sprintf("Start %s by %d days", verb, abs(change.StartDaysDelta)))
+		duration := formatHumanDuration(abs(change.StartDaysDelta))
+		part := fmt.Sprintf("start %s by %s", verb, duration)
+		parts = append(parts, part)
 	}
-	if change.DurationDelta != 0 {
+	if change.DurationDelta != 0 && change.EndDaysDelta != 0 && change.EndDaysDelta != change.StartDaysDelta {
 		verb := "increased"
 		if change.DurationDelta < 0 {
 			verb = "decreased"
 		}
-		parts = append(parts, fmt.Sprintf("Duration %s by %d days", verb, abs(change.DurationDelta)))
+		duration := formatHumanDuration(abs(change.DurationDelta))
+		part := fmt.Sprintf("duration %s by %s", verb, duration)
+		parts = append(parts, part)
 	}
 	if len(parts) == 0 {
 		return "No timeline changes"
