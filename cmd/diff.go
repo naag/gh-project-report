@@ -17,7 +17,7 @@ var (
 	moderateRisk int
 	highRisk     int
 	extremeRisk  int
-	outputFormat string
+	output       string
 	filter       string
 )
 
@@ -34,6 +34,7 @@ You can specify the time range in two ways:
 The output format can be specified using the --format flag:
 - text: Plain text output (default)
 - markdown: Markdown table output
+- tableplain: Plain table output
 
 You can filter items using the --filter flag with attribute=value format:
 - gh-project-report diff --range "last 1 week" --filter "Team=UI"
@@ -71,14 +72,14 @@ func init() {
 	diffCmd.Flags().IntVar(&moderateRisk, "moderate-risk", 7, "Days of delay to consider moderate risk (default: 7)")
 	diffCmd.Flags().IntVar(&highRisk, "high-risk", 14, "Days of delay to consider high risk (default: 14)")
 	diffCmd.Flags().IntVar(&extremeRisk, "extreme-risk", 30, "Days of delay to consider extreme risk (default: 30)")
-	diffCmd.Flags().StringVarP(&outputFormat, "format", "o", "text", "Output format (text or markdown)")
+	diffCmd.Flags().StringVarP(&output, "output", "o", "text", "Output format (text, markdown, or tableplain)")
 	diffCmd.Flags().StringVarP(&filter, "filter", "f", "", "Filter items using attribute=value format")
 }
 
 func runDiff(cmd *cobra.Command, args []string) error {
 	// Validate output format
-	if outputFormat != "text" && outputFormat != "markdown" {
-		return fmt.Errorf("invalid output format: %s (must be 'text' or 'markdown')", outputFormat)
+	if output != "text" && output != "markdown" && output != "tableplain" {
+		return fmt.Errorf("invalid output format: %s (must be 'text', 'markdown', or 'tableplain')", output)
 	}
 
 	// Create formatter with custom options
@@ -89,8 +90,10 @@ func runDiff(cmd *cobra.Command, args []string) error {
 		format.WithExtremeDelayThreshold(extremeRisk),
 	}
 
-	if outputFormat == "text" {
+	if output == "text" {
 		formatter = format.NewTextFormatter(opts...)
+	} else if output == "tableplain" {
+		formatter = format.NewPlainTableFormatter(opts...)
 	} else {
 		formatter = format.NewTableFormatter(opts...)
 	}

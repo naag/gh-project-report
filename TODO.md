@@ -1,0 +1,6 @@
+- [x] Allow filtering by field
+- [ ] Add formatter for table format that works on the CLI
+- [ ] Use better library for human readable date ranges
+- [ ] Figure out how to externalise the GraphQL queries
+- [ ] Make date format configurable (e.g. by locale)
+- [ ] Refactor out the core table module
