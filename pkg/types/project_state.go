@@ -58,43 +58,40 @@ func (s *ProjectState) FilterState(filter string) (*ProjectState, error) {
 	return filtered, nil
 }
 
-// CompareProjectStates compares two project states and returns a ProjectDiff
-func CompareProjectStates(oldState, newState *ProjectState) ProjectDiff {
+func (p *ProjectState) CompareTo(other *ProjectState) *ProjectDiff {
 	diff := ProjectDiff{}
-	oldItems := make(map[string]Item)
-	newItems := make(map[string]Item)
 
-	// Create maps for easier lookup
-	for _, item := range oldState.Items {
-		oldItems[item.ID] = item
-	}
-	for _, item := range newState.Items {
-		newItems[item.ID] = item
-	}
-
-	// Find removed items
-	for id, oldItem := range oldItems {
-		if _, exists := newItems[id]; !exists {
+	// Find removed and changed items
+	for _, oldItem := range p.Items {
+		found := false
+		for _, newItem := range other.Items {
+			if oldItem.ID == newItem.ID {
+				found = true
+				itemDiff := oldItem.CompareTo(newItem)
+				if itemDiff.HasChanges() {
+					diff.ChangedItems = append(diff.ChangedItems, itemDiff)
+				}
+				break
+			}
+		}
+		if !found {
 			diff.RemovedItems = append(diff.RemovedItems, oldItem)
 		}
 	}
 
 	// Find added items
-	for id, newItem := range newItems {
-		if _, exists := oldItems[id]; !exists {
+	for _, newItem := range other.Items {
+		found := false
+		for _, oldItem := range p.Items {
+			if newItem.ID == oldItem.ID {
+				found = true
+				break
+			}
+		}
+		if !found {
 			diff.AddedItems = append(diff.AddedItems, newItem)
 		}
 	}
 
-	// Find changed items
-	for id, oldItem := range oldItems {
-		if newItem, exists := newItems[id]; exists {
-			itemDiff := oldItem.CompareTo(newItem)
-			if itemDiff.HasChanges() {
-				diff.ChangedItems = append(diff.ChangedItems, itemDiff)
-			}
-		}
-	}
-
-	return diff
+	return &diff
 }

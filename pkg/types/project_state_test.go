@@ -154,7 +154,7 @@ func TestFilterState_Integration(t *testing.T) {
 	newFiltered, err := newState.FilterState("Team=UI")
 	require.NoError(t, err)
 
-	diff := CompareProjectStates(oldFiltered, newFiltered)
+	diff := oldFiltered.CompareTo(newFiltered)
 
 	// Task 1 should be in RemovedItems (moved from UI to Backend)
 	assert.Equal(t, 1, len(diff.RemovedItems))
@@ -169,7 +169,7 @@ func TestFilterState_Integration(t *testing.T) {
 	newFiltered, err = newState.FilterState("Priority=High")
 	require.NoError(t, err)
 
-	diff = CompareProjectStates(oldFiltered, newFiltered)
+	diff = oldFiltered.CompareTo(newFiltered)
 
 	// Task 2 should be in AddedItems (priority changed to High)
 	assert.Equal(t, 1, len(diff.AddedItems))

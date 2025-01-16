@@ -105,7 +105,7 @@ func TestStateFileToProjectDiff(t *testing.T) {
 	require.NoError(t, err)
 
 	// Get the diff
-	diff := types.CompareProjectStates(oldStateLoaded, newStateLoaded)
+	diff := oldStateLoaded.CompareTo(newStateLoaded)
 
 	// Verify the diff structure
 	assert.Len(t, diff.AddedItems, 1, "should have one added item")

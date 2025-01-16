@@ -11,6 +11,13 @@ type DateSpan struct {
 	End   time.Time
 }
 
+// DateSpanChange represents how a time range has changed
+type DateSpanChange struct {
+	StartDaysDelta int // positive = moved later, negative = moved earlier
+	EndDaysDelta   int // positive = extended, negative = shortened
+	DurationDelta  int // change in duration in days
+}
+
 // NewDateSpan creates a DateSpan from string dates in YYYY-MM-DD format
 func NewDateSpan(start, end string) (DateSpan, error) {
 	startTime, err := time.Parse("2006-01-02", start)
@@ -39,13 +46,6 @@ func MustNewDateSpan(start, end string) DateSpan {
 // DurationDays returns the duration in days, including both start and end days
 func (ds DateSpan) DurationDays() int {
 	return int(ds.End.Sub(ds.Start).Hours()/24) + 1
-}
-
-// DateSpanChange represents how a time range has changed
-type DateSpanChange struct {
-	StartDaysDelta int // positive = moved later, negative = moved earlier
-	EndDaysDelta   int // positive = extended, negative = shortened
-	DurationDelta  int // change in duration in days
 }
 
 // CompareTo compares this range to another and returns the changes

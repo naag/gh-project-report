@@ -6,7 +6,6 @@ import (
 
 	"github.com/naag/gh-project-report/pkg/format"
 	"github.com/naag/gh-project-report/pkg/storage"
-	"github.com/naag/gh-project-report/pkg/types"
 	"github.com/spf13/cobra"
 )
 
@@ -152,7 +151,7 @@ func runDiff(cmd *cobra.Command, args []string) error {
 	fmt.Printf("To: %s\n", toState.Filename)
 
 	// Compare states and format output
-	diff := types.CompareProjectStates(fromState, toState)
-	fmt.Print(formatter.Format(diff))
+	diff := fromState.CompareTo(toState)
+	fmt.Print(formatter.Format(*diff))
 	return nil
 }
