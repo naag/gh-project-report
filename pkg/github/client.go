@@ -141,21 +141,12 @@ func (c *Client) FetchProjectState(projectNumber int, organization, startField, 
 							DraftIssue  DraftIssueContent  `graphql:"... on DraftIssue"`
 						}
 					}
-				}
+				} `graphql:"items(first: 100, after: $cursor)"`
 			} `graphql:"... on ProjectV2"`
 		} `graphql:"node(id: $id)"`
 	}
 
-	variables := map[string]interface{}{
-		"id": graphql.ID(projectNodeID),
-	}
-
-	err = c.graphql.Query(context.Background(), &query, variables)
-	if err != nil {
-		return nil, fmt.Errorf("GraphQL query failed: %w", err)
-	}
-
-	// Convert the GraphQL response to our ProjectState type
+	// Initialize state
 	state := &types.ProjectState{
 		Timestamp:     time.Now(),
 		ProjectNumber: projectNumber,
@@ -164,82 +155,105 @@ func (c *Client) FetchProjectState(projectNumber int, organization, startField, 
 		Items:         make([]types.Item, 0),
 	}
 
-	for _, item := range query.Node.ProjectV2.Items.Nodes {
-		// Get title and timestamps based on content type
-		var (
-			title     string
-			createdAt time.Time
-			updatedAt time.Time
-		)
-
-		switch item.Content.TypeName {
-		case "Issue":
-			title = string(item.Content.Issue.Title)
-			createdAt, _ = time.Parse(time.RFC3339, string(item.Content.Issue.CreatedAt))
-			updatedAt, _ = time.Parse(time.RFC3339, string(item.Content.Issue.UpdatedAt))
-		case "PullRequest":
-			title = string(item.Content.PullRequest.Title)
-			createdAt, _ = time.Parse(time.RFC3339, string(item.Content.PullRequest.CreatedAt))
-			updatedAt, _ = time.Parse(time.RFC3339, string(item.Content.PullRequest.UpdatedAt))
-		case "DraftIssue":
-			title = string(item.Content.DraftIssue.Title)
-			createdAt, _ = time.Parse(time.RFC3339, string(item.Content.DraftIssue.CreatedAt))
-			updatedAt, _ = time.Parse(time.RFC3339, string(item.Content.DraftIssue.UpdatedAt))
+	var cursor *graphql.String
+	for {
+		variables := map[string]interface{}{
+			"id":     graphql.ID(projectNodeID),
+			"cursor": cursor,
 		}
 
-		if title == "" {
-			title = fmt.Sprintf("Unknown type: %s", item.Content.TypeName)
+		err = c.graphql.Query(context.Background(), &query, variables)
+		if err != nil {
+			return nil, fmt.Errorf("GraphQL query failed: %w", err)
 		}
 
-		projectItem := types.Item{
-			ID: string(item.ID),
-			Attributes: map[string]interface{}{
-				"Title":      title,
-				"created_at": createdAt,
-				"updated_at": updatedAt,
-			},
-		}
+		// Process items from current page
+		for _, item := range query.Node.ProjectV2.Items.Nodes {
+			// Get title and timestamps based on content type
+			var (
+				title     string
+				createdAt time.Time
+				updatedAt time.Time
+			)
 
-		// Process field values
-		for _, fieldValue := range item.FieldValues.Nodes {
-			switch fieldValue.TypeName {
-			case "ProjectV2ItemFieldTextValue":
-				name := string(fieldValue.TextValue.Field.Common.Name)
-				if name == "Title" {
-					continue
-				}
-				projectItem.Attributes[name] = string(fieldValue.TextValue.Text)
-			case "ProjectV2ItemFieldNumberValue":
-				name := string(fieldValue.NumberValue.Field.Common.Name)
-				projectItem.Attributes[name] = fieldValue.NumberValue.Number
-			case "ProjectV2ItemFieldDateValue":
-				name := string(fieldValue.DateValue.Field.Common.Name)
-				dateStr := string(fieldValue.DateValue.Date)
-
-				if name == startField || name == endField {
-					if date, err := time.Parse("2006-01-02", dateStr); err == nil {
-						if name == startField {
-							projectItem.DateSpan.Start = date
-						} else {
-							projectItem.DateSpan.End = date
-						}
-					}
-				} else {
-					projectItem.Attributes[name] = dateStr
-				}
-			case "ProjectV2ItemFieldSingleSelectValue":
-				name := string(fieldValue.SingleSelect.Field.Common.Name)
-				projectItem.Attributes[name] = string(fieldValue.SingleSelect.Name)
-			case "ProjectV2ItemFieldRepositoryValue":
-				name := string(fieldValue.Repository.Field.Common.Name)
-				repoValue := fmt.Sprintf("%s/%s",
-					fieldValue.Repository.Repository.Owner.Login,
-					fieldValue.Repository.Repository.Name)
-				projectItem.Attributes[name] = repoValue
+			switch item.Content.TypeName {
+			case "Issue":
+				title = string(item.Content.Issue.Title)
+				createdAt, _ = time.Parse(time.RFC3339, string(item.Content.Issue.CreatedAt))
+				updatedAt, _ = time.Parse(time.RFC3339, string(item.Content.Issue.UpdatedAt))
+			case "PullRequest":
+				title = string(item.Content.PullRequest.Title)
+				createdAt, _ = time.Parse(time.RFC3339, string(item.Content.PullRequest.CreatedAt))
+				updatedAt, _ = time.Parse(time.RFC3339, string(item.Content.PullRequest.UpdatedAt))
+			case "DraftIssue":
+				title = string(item.Content.DraftIssue.Title)
+				createdAt, _ = time.Parse(time.RFC3339, string(item.Content.DraftIssue.CreatedAt))
+				updatedAt, _ = time.Parse(time.RFC3339, string(item.Content.DraftIssue.UpdatedAt))
 			}
+
+			if title == "" {
+				title = fmt.Sprintf("Unknown type: %s", item.Content.TypeName)
+			}
+
+			projectItem := types.Item{
+				ID: string(item.ID),
+				Attributes: map[string]interface{}{
+					"Title":      title,
+					"created_at": createdAt,
+					"updated_at": updatedAt,
+				},
+			}
+
+			// Process field values
+			for _, fieldValue := range item.FieldValues.Nodes {
+				switch fieldValue.TypeName {
+				case "ProjectV2ItemFieldTextValue":
+					name := string(fieldValue.TextValue.Field.Common.Name)
+					if name == "Title" {
+						continue
+					}
+					projectItem.Attributes[name] = string(fieldValue.TextValue.Text)
+				case "ProjectV2ItemFieldNumberValue":
+					name := string(fieldValue.NumberValue.Field.Common.Name)
+					projectItem.Attributes[name] = fieldValue.NumberValue.Number
+				case "ProjectV2ItemFieldDateValue":
+					name := string(fieldValue.DateValue.Field.Common.Name)
+					dateStr := string(fieldValue.DateValue.Date)
+
+					if name == startField || name == endField {
+						if date, err := time.Parse("2006-01-02", dateStr); err == nil {
+							if name == startField {
+								projectItem.DateSpan.Start = date
+							} else {
+								projectItem.DateSpan.End = date
+							}
+						}
+					} else {
+						projectItem.Attributes[name] = dateStr
+					}
+				case "ProjectV2ItemFieldSingleSelectValue":
+					name := string(fieldValue.SingleSelect.Field.Common.Name)
+					projectItem.Attributes[name] = string(fieldValue.SingleSelect.Name)
+				case "ProjectV2ItemFieldRepositoryValue":
+					name := string(fieldValue.Repository.Field.Common.Name)
+					repoValue := fmt.Sprintf("%s/%s",
+						fieldValue.Repository.Repository.Owner.Login,
+						fieldValue.Repository.Repository.Name)
+					projectItem.Attributes[name] = repoValue
+				}
+			}
+
+			state.Items = append(state.Items, projectItem)
 		}
 
-		state.Items = append(state.Items, projectItem)
+		// Check if there are more pages
+		if !query.Node.ProjectV2.Items.PageInfo.HasNextPage {
+			break
+		}
+
+		// Update cursor for next page
+		endCursor := graphql.String(query.Node.ProjectV2.Items.PageInfo.EndCursor)
+		cursor = &endCursor
 	}
 
 	return state, nil
